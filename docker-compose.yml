@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  
+  email-transmitter:
+    image: ecorrouge/email-transmitter:latest
+    container_name: project_email_transmitter
+    restart: unless-stopped
+    depends_on:
+      rabbitmq:
+        condition: service_healthy
+    environment:
+      RABBITMQ_HOST: ${RABBITMQ_USER}
+      EMAIL_PROVIDER: ${EMAIL_PROVIDER}
+      RABBITMQ_PORT: ${RABBITMQ_PORT}
+      RABBITMQ_VIRTUAL_HOST: ${VIRTUAL_HOST}
+      RABBITMQ_USER: ${RABBITMQ_USER}
+      RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      QUEUE_NAME_PREFIX: ${QUEUE_NAME_PREFIX}
+      EmailServiceProcessor_QUEUE_NAME: ${EmailServiceProcessor_QUEUE_NAME}
+      MAILJET_API_URL: ${MAILJET_API_URL}
+      MAILJET_API_KEY: ${MAILJET_API_KEY}
+      MAILJET_API_SECRET: ${MAILJET_SECRET_KEY}
+      CONFIG_FILEPATH: /app/src/services/email_transmitter/src/config.json
+    env_file:
+      - .env
+      - .env.secrets 
+    volumes:
+      - ./flask/email-transmitter/config.json:/app/src/services/email_transmitter/src/config.json
+  mysql:
+    image: mysql:5.7
+    platform: linux/amd64
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_PASSWORD}              # MySQL root password
+      MYSQL_DATABASE: ${MYSQL_DATABASE}                   # Initial database to create
+      MYSQL_USER: ${MYSQL_PASSWORD}                               # MySQL user
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}                       # Password for the MySQL user
+      MYSQL_ALLOW_EMPTY_PASSWORD: 'yes'              # Allow empty password (for root)
+    ports:
+      - "${MYSQL_PORT}:3306"
+    env_file:
+      - .env
+      - .env.secrets 
+  flask-app:
+    build: .
+    ports:
+      - "5000:5000"
+    depends_on:
+      [mysql, rabbitmq, email-transmitter]
+    env_file:
+      - .env
+      - .env.secrets

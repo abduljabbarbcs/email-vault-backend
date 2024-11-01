@@ -1,0 +1,5 @@
+flask
+rococo
+python-dotenv
+flask_cors
+bleach

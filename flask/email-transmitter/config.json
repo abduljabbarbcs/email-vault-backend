@@ -1,0 +1,26 @@
+{
+    "configurations": [
+      {
+        "provider": "mailjet",
+        "sourceEmail": "Email-Vault <emailvault@ecortest.com>",
+        "errorReportingEmail": "m.jabbar.bcs@gmail.com"
+      }
+    ],
+    "events": {
+      "USER_SIGNUP": {
+        "subject": "Welcome {{var:recipient_name}}",
+        "templateName": "Verify Email",
+        "id": {
+          "mailjet": 6410451
+        }
+      },
+      "PASSWORD_RESET": {
+        "subject": "Reset Your Password",
+        "templateName": "Reset Password",
+        "id": {
+          "mailjet": 6410454
+        }
+      }
+    }
+  }
+  
