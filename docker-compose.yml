@@ -22,7 +22,7 @@ services:
       rabbitmq:
         condition: service_healthy
     environment:
-      RABBITMQ_HOST: ${RABBITMQ_USER}
+      RABBITMQ_HOST: rabbitmq
       EMAIL_PROVIDER: ${EMAIL_PROVIDER}
       RABBITMQ_PORT: ${RABBITMQ_PORT}
       RABBITMQ_VIRTUAL_HOST: ${VIRTUAL_HOST}
