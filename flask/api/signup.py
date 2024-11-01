@@ -113,7 +113,7 @@ def verify_email(token):
         emailM = email_repo.find_by_email(email)
         if emailM.is_verified:
             return jsonify({'message': 'Email already verified'}), 200
-        login_method = login_method_repo.find_by_email_id({'email.email': email})
+        login_method = login_method_repo.find_by_email({'email.email': email})
         emailM.is_verified = 1
         login_method.email = emailM
         email_repo.save(emailM)
