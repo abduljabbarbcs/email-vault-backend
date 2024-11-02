@@ -29,17 +29,13 @@ def validate_password(password: str):
     return False
 
 def check_referral_code(referral_code, person):
-    if referral_code:
-        referral_code_repo = RepositoryFactory.get_repository(ReferralCodeRepository)
-        code = referral_code_repo.find_by_code(referral_code)
-        if code and not code.referred_person_id:
-            code.referred_person_id = person
-            referral_code_repo.save(code)
-            return True
-        else:
-            return False
+    referral_code_repo = RepositoryFactory.get_repository(ReferralCodeRepository)
+    code = referral_code_repo.find_by_code(referral_code)
+    if code and not code.referred_person_id:
+        code.referred_person_id = person
+        return code
     else:
-        return True
+        return False
 
 @signup_bp.route('', methods=['POST'])
 def sign_up():
@@ -59,6 +55,7 @@ def sign_up():
         # Use the RepositoryFactory to initialize repositories
         login_method_repo = RepositoryFactory.get_repository(LoginMethodRepository)
         person_repo = RepositoryFactory.get_repository(PersonRepository)
+        referral_code_repo = RepositoryFactory.get_repository(ReferralCodeRepository)
         organization_repo = RepositoryFactory.get_repository(OrganizationRepository)
         payment_info_repo = RepositoryFactory.get_repository(PaymentInfoRepository)
         email_repo = RepositoryFactory.get_repository(EmailRepository)
@@ -71,7 +68,14 @@ def sign_up():
             return jsonify({'error': 'Email already exists'}), 400
 
         person = Person(first_name=signup_params.first_name, last_name=signup_params.last_name)
-        person_repo.save(person)
+        # Process referral code
+        if signup_params.referral_code:
+            referral_code = check_referral_code(signup_params.referral_code, person)
+            if not referral_code:
+                return jsonify({'error': 'Invalid or used referral code'}), 400
+            person_repo.save(person)
+            referral_code_repo.save(referral_code)
+        else: person_repo.save(person)
         emailM = Email(email=signup_params.email, person=person)
         email_repo.save(emailM)
         login_method = LoginMethod(email = emailM, password=password_hash, person=person.entity_id, method_type='email-password')
@@ -81,10 +85,6 @@ def sign_up():
         if not organization:
             organization = Organization(name=signup_params.company_name)
             organization_repo.save(organization)
-        # Process referral code
-        referral_code_flag = check_referral_code(signup_params.referral_code, person)
-        if not referral_code_flag:
-            return jsonify({'error': 'Invalid or used referral code'}), 400
         # mask card number and then hash it to store in db
         card_number_masked = mask_credit_card(signup_params.card_number)
         card_hash = hash_sensitive_info(signup_params.card_number+signup_params.cvv+signup_params.expiry_date, signup_params.email)
